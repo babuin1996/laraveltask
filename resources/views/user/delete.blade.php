@@ -7,7 +7,6 @@
 
                 <div class="h2">Do you want to delete this user?</div>
 
-                    @csrf
                     <div class="form-group">
                         <label for="nameInput">Name</label>
                         <input type="text" class="form-control" id="nameInput" name="name" value="{{$user->name}}" disabled>
@@ -41,6 +40,7 @@
                         <label class="form-check-label" for="permDelete">Can delete</label>
                     </div>
                     <form action="/users/destroy/{{$user->id}}" method="post">
+                        @csrf
                         <div class="form-group">
                             <a href="/users" class="btn btn-primary float-right">no</a>
                         </div>

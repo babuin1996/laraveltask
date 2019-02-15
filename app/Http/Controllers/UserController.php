@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Auth;
-use DB;
 use App\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
@@ -45,7 +44,7 @@ class UserController extends Controller
     {
         if(Auth::user()->perm_create == 0){die;}
 
-        DB::table('users')->insert(
+        User::insert(
             [
                 'name' => $request->input('name'),
                 'email' => $request->input('email'),
@@ -85,7 +84,7 @@ class UserController extends Controller
     {
         if(Auth::user()->perm_update == 0){die;}
 
-        $user = DB::table('users')->where('id', '=', $id)->first();;
+        $user = User::where('id', '=', $id)->first();;
 
         return view('user/update')->with('user', $user);
     }
@@ -120,7 +119,7 @@ class UserController extends Controller
     {
         if(Auth::user()->perm_delete == 0){die;}
 
-        $user = DB::table('users')->where('id', '=', $id)->first();;
+        $user = User::where('id', '=', $id)->first();;
 
         return view('user/delete')->with('user', $user);
     }
