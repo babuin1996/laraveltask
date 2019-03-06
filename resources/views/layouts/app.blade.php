@@ -66,7 +66,7 @@
                                     </form>
                                 </div>
                             </li>
-                            @if(Auth::user()->perm_create > 0 || Auth::user()->perm_read > 0 || Auth::user()->perm_update > 0 || Auth::user()->perm_delete > 0)
+                            @if(Auth::check())
                                 <li class="nav-item">
                                     <a class="nav-link" href="{{ route('users/index') }}">{{ __('Users') }}</a>
                                 </li>

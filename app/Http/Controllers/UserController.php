@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use Auth;
+use DB;
 use App\User;
+use App\Role;
+use App\RoleUser;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
 
@@ -17,6 +20,10 @@ class UserController extends Controller
      */
     public function index()
     {
+        if(!auth()->user()->can('read-user')){
+            return response()->json(['title' => 'Access denied'], 403);
+        }
+
         $users = User::all();
 
         return view('user/index')->with('users', $users);
@@ -29,9 +36,12 @@ class UserController extends Controller
      */
     public function create()
     {
-        if(Auth::user()->perm_create == 0){die;}
+        if(!auth()->user()->can('create-user')){
+            return response()->json(['title' => 'Access denied'], 403);
+        }
+        $roles = Role::all();
 
-        return view('user/create');
+        return view('user/create')->with('roles', $roles);;
     }
 
     /**
@@ -42,19 +52,16 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        if(Auth::user()->perm_create == 0){die;}
+        if(!auth()->user()->can('create-user')){
+            return response()->json(['title' => 'Access denied'], 403);
+        }
 
-        User::insert(
-            [
-                'name' => $request->input('name'),
-                'email' => $request->input('email'),
-                'password' => Hash::make($request->input('password')),
-                'perm_create' => $request->input('permCreate'),
-                'perm_read' => $request->input('permRead'),
-                'perm_update' => $request->input('permUpdate'),
-                'perm_delete' => $request->input('permDelete'),
-            ]
-        );
+        $user = User::create([
+            'name' => $request->input('name'),
+            'email' => $request->input('email'),
+            'password' => Hash::make($request->input('password')),
+        ]);
+        $user->roles()->attach($request->input('role_id'));
 
         return redirect('users');
     }
@@ -67,11 +74,15 @@ class UserController extends Controller
      */
     public function show($id)
     {
-        if(Auth::user()->perm_read == 0){die;}
+        if(!auth()->user()->can('read-user')){
+            return response()->json(['title' => 'Access denied'], 403);
+        }
 
         $user = User::where('id', $id)->first();
 
-        return view('user/show')->with('user', $user);
+        $role = Role::where('id', (DB::table('role_users')->where('user_id',$id)->first())->role_id)->first();
+
+        return view('user/show')->with(['user' => $user, 'role' => $role]);
     }
 
     /**
@@ -82,11 +93,16 @@ class UserController extends Controller
      */
     public function edit($id)
     {
-        if(Auth::user()->perm_update == 0){die;}
+        if(!auth()->user()->can('update-user') || auth()->user()->id == $id){
+            return response()->json(['title' => 'Access denied'], 403);
+        }
 
-        $user = User::where('id', '=', $id)->first();;
+        $user = User::where('id', '=', $id)->first();
+        //echo '<pre>'; var_dump(DB::table('role_users')->where('user_id',$id)->get());die;
+        $currentRole = Role::where('id', (DB::table('role_users')->where('user_id',$id)->first())->role_id)->first();
+        $roles = Role::all();
 
-        return view('user/update')->with('user', $user);
+        return view('user/update')->with(['user'=> $user, 'currentRole' => $currentRole, 'roles' => $roles]);
     }
 
     /**
@@ -98,17 +114,16 @@ class UserController extends Controller
      */
     public function update(Request $request, $id)
     {
-        if(Auth::user()->perm_update == 0){die;}
+        if (!auth()->user()->can('update-user') || auth()->user()->id == $id) {
+            return response()->json(['title' => 'Access denied'], 403);
+        }
 
         $user = User::where('id', $id)->first();
-
         $user->name = $request->input('name');
         $user->email = $request->input('email');
-        $user->perm_create = $request->input('permCreate');
-        $user->perm_read = $request->input('permRead');
-        $user->perm_update = $request->input('permUpdate');
-        $user->perm_delete = $request->input('permDelete');
-
+        if (auth()->user()->isAdmin()) {
+            $user->roles()->sync([$request->input('role_id')]);
+        }
         $user->save();
 
         return redirect('users');
@@ -117,7 +132,9 @@ class UserController extends Controller
 
     public function delete($id)
     {
-        if(Auth::user()->perm_delete == 0){die;}
+        if(!auth()->user()->can('delete-user')){
+            return response()->json(['title' => 'Access denied'], 403);
+        }
 
         $user = User::where('id', '=', $id)->first();;
 
@@ -132,7 +149,9 @@ class UserController extends Controller
      */
     public function destroy($id)
     {
-        if(Auth::user()->perm_delete == 0){die;}
+        if(!auth()->user()->can('delete-user')){
+            return response()->json(['title' => 'Access denied'], 403);
+        }
 
         User::destroy($id);
 
